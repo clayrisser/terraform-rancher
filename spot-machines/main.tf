@@ -3,12 +3,16 @@ provider "aws" {
   shared_credentials_file = "~/.aws/credentials"
 }
 
-data "template_file" "userdata" {
-  template = "${file("userdata.template")}"
+data "template_file" "cloudconfig" {
+  template = "${file("cloudconfig.template")}"
   vars {
-    rancher_registration_command = "${var.rancher_registration_command}"
-    docker_version               = "1.12.6"
-    ssh_pub_key                  = "${var.ssh_public_key}"
+    rancher_version   = "1.2.2"
+    rancher_url       = "${var.rancher_url}"
+    rancher_token     = "${var.rancher_token}"
+    docker_version    = "1.12.6"
+    cloudflare_key    = "${var.cloudflare_key}"
+    cloudflare_email  = "${var.cloudflare_email}"
+    cloudflare_domain = "${var.cloudflare_domain}"
   }
 }
 
@@ -17,7 +21,10 @@ resource "aws_launch_configuration" "rancher-spot-machine" {
   instance_type   = "t2.medium"
   key_name        = "rancher-machine"
   security_groups = ["rancher-machine"]
-  user_data       = "${data.template_file.userdata.rendered}"
+  user_data       = "${data.template_file.cloudconfig.rendered}"
+  root_block_device {
+    volume_size = "16"
+  }
 }
 
 resource "aws_autoscaling_group" "rancher-spot-machines" {

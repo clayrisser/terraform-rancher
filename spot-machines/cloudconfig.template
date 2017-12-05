@@ -1,0 +1,56 @@
+#cloud-config
+write_files:
+  - path: /etc/rc.local
+    permissions: "0755"
+    owner: root
+    content: |
+      #!/bin/bash
+      wait-for-docker
+      docker run -d \
+        --privileged \
+        -e CATTLE_HOST_LABELS="id=`wget -qO- http://169.254.169.254/latest/meta-data/instance-id`" \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        rancher/agent:v${rancher_version} ${rancher_url}/v1/scripts/${rancher_token}
+      docker run --rm \
+        -e CLOUDFLARE_API_KEY=${cloudflare_key} \
+        -e CLOUDFLARE_EMAIL=${cloudflare_email} \
+        -e CLOUDFLARE_WEBSITE=${cloudflare_domain} \
+        -e SUBDOMAIN=servers \
+        jamrizzi/dns-register:latest register
+  - path: /etc/systemd/system/shutdown.service
+    permissions: "0755"
+    owner: root
+    content: |
+      [Unit]
+      Description=Run deactivate at shutdown
+      Requires=network.target
+      DefaultDependencies=no
+      Before=shutdown.target reboot.target
+      [Service]
+      Type=oneshot
+      RemainAfterExit=true
+      ExecStart=/bin/true
+      ExecStop=/opt/deactivate.sh
+      [Install]
+      WantedBy=multi-user.target
+  - path: /opt/deactivate.sh
+    permissions: "0755"
+    owner: root
+    content: |
+      #!/bin/bash
+      docker run --rm \
+        -e CLOUDFLARE_API_KEY=${cloudflare_key} \
+        -e CLOUDFLARE_EMAIL=${cloudflare_email} \
+        -e CLOUDFLARE_WEBSITE=${cloudflare_domain} \
+        -e SUBDOMAIN=servers \
+        jamrizzi/dns-register:latest unregister
+rancher:
+  docker:
+    engine: ${docker_version}
+    log_driver: "json-file"
+    log_opts:
+      max-file: "3"
+      max-size: "100m"
+      labels: "production"
+  services_include:
+    kernel-headers: true
