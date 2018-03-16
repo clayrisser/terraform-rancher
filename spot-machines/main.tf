@@ -6,24 +6,21 @@ provider "aws" {
 data "template_file" "cloudconfig" {
   template = "${file("cloudconfig.template")}"
   vars {
-    rancher_version   = "1.2.2"
+    rancher_version   = "1.2.9"
     rancher_url       = "${var.rancher_url}"
     rancher_token     = "${var.rancher_token}"
-    docker_version    = "1.12.6"
-    cloudflare_key    = "${var.cloudflare_key}"
-    cloudflare_email  = "${var.cloudflare_email}"
-    cloudflare_domain = "${var.cloudflare_domain}"
+    docker_version    = "17.03.2-ce"
   }
 }
 
 resource "aws_launch_configuration" "rancher-spot-machine" {
-  image_id        = "ami-9515feed"
+  image_id        = "ami-6e1a9e16"
   instance_type   = "t2.medium"
   key_name        = "rancher-machine"
   security_groups = ["rancher-machine"]
   user_data       = "${data.template_file.cloudconfig.rendered}"
   root_block_device {
-    volume_size = "16"
+    volume_size = "20"
   }
 }
 
@@ -45,7 +42,7 @@ resource "aws_autoscaling_group" "rancher-spot-machines" {
     propagate_at_launch = true
   }
   tag {
-    key                 = "spot"
+    key                 = "spot-enabled"
     value               = "true"
     propagate_at_launch = true
   }
