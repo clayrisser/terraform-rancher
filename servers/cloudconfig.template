@@ -1,0 +1,37 @@
+#cloudconfig
+write_files:
+  - path: /etc/rc.local
+    permissions: "0755"
+    owner: root
+    content: |
+      #!/bin/bash
+      export INSTANCE_ID=$(wget -qO- http://169.254.169.254/latest/meta-data/instance-id)
+      wait-for-docker
+      export SPOT=$(docker run --rm \
+        -e AWS_ACCESS_KEY_ID="${aws_access_key}" \
+        -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
+        -e AWS_DEFAULT_REGION="us-west-2" \
+        mesosphere/aws-cli ec2 describe-instances --instance-ids $INSTANCE_ID | \
+        grep -o '"InstanceLifecycle": "spot"')
+      export LIFECYCLE=$([[ -z "$SPOT" ]] && echo "dedicated" || echo "spot")
+      docker run --rm \
+        -e CLOUDFLARE_API_KEY=${cloudflare_api_key} \
+        -e CLOUDFLARE_EMAIL=${cloudflare_email} \
+        -e CLOUDFLARE_WEBSITE=${cloudflare_website} \
+        -e SUBDOMAIN=servers \
+        jamrizzi/dns-register:latest register
+      docker run -d \
+        --privileged \
+        -e CATTLE_HOST_LABELS="id=$INSTANCE_ID&lifecycle=$LIFECYCLE" \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        rancher/agent:v${rancher_version} ${rancher_register_url}
+rancher:
+  docker:
+    engine: ${docker_version}
+    log_driver: "json-file"
+    log_opts:
+      max-file: "3"
+      max-size: "100m"
+      labels: "production"
+  services_include:
+    kernel-headers: true

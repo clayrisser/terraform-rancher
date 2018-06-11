@@ -1,0 +1,26 @@
+#cloudconfig
+write_files:
+  - path: /etc/rc.local
+    permissions: "0755"
+    owner: root
+    content: |
+      #!/bin/bash
+      wait-for-docker
+      docker run --rm \
+        -e CLOUDFLARE_API_KEY=${cloudflare_api_key} \
+        -e CLOUDFLARE_EMAIL=${cloudflare_email} \
+        -e CLOUDFLARE_WEBSITE=${cloudflare_website} \
+        -e SUBDOMAIN=orch \
+        jamrizzi/dns-register:latest register
+      curl -L https://raw.githubusercontent.com/codejamninja/rancher-install/master/rancher-install.sh | \
+        sudo bash
+rancher:
+  docker:
+    engine: ${docker_version}
+    log_driver: "json-file"
+    log_opts:
+      max-file: "3"
+      max-size: "100m"
+      labels: "production"
+  services_include:
+    kernel-headers: true
