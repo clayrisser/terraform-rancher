@@ -36,18 +36,6 @@ write_files:
         echo ${mysql_database}) | \
         bash rancher-install.sh
       rm rancher-install.sh
-  - path: /etc/rc0.d/S01ec2-termination
-    permissions: "0755"
-    owner: root
-    content: |
-      #!/bin/bash
-      touch /terminating
-      docker run --rm \
-        -e CLOUDFLARE_API_KEY=${cloudflare_api_key} \
-        -e CLOUDFLARE_EMAIL=${cloudflare_email} \
-        -e CLOUDFLARE_WEBSITE=${cloudflare_website} \
-        -e SUBDOMAIN=orch \
-        codejamninja/dns-register:latest unregister
 rancher:
   docker:
     engine: ${docker_version}

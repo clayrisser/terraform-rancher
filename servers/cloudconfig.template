@@ -28,17 +28,6 @@ write_files:
         -e CATTLE_HOST_LABELS="id=$INSTANCE_ID&lifecycle=$LIFECYCLE" \
         -v /var/run/docker.sock:/var/run/docker.sock \
         rancher/agent:v${rancher_version} ${rancher_register_url}
-  - path: /etc/rc0.d/S01ec2-termination
-    permissions: "0755"
-    owner: root
-    content: |
-      #!/bin/bash
-      docker run --rm \
-        -e CLOUDFLARE_API_KEY=${cloudflare_api_key} \
-        -e CLOUDFLARE_EMAIL=${cloudflare_email} \
-        -e CLOUDFLARE_WEBSITE=${cloudflare_website} \
-        -e SUBDOMAIN=servers \
-        codejamninja/dns-register:latest unregister
 rancher:
   docker:
     engine: ${docker_version}
