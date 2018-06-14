@@ -16,7 +16,7 @@ write_files:
         -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
         -e AWS_DEFAULT_REGION="${region}" \
         mesosphere/aws-cli ec2 allocate-address | \
-        grep "AllocationId" | sed 's/\s//g' | sed 's/AllocationId://g')
+        grep "AllocationId" | sed 's/\s//g' | sed 's/\"//g' | sed 's/AllocationId://g')
       echo $ASSOCIATION_ID > association_id
       docker run --rm \
         -e AWS_ACCESS_KEY_ID="${aws_access_key}" \
