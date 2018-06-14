@@ -14,6 +14,7 @@ data "template_file" "cloudconfig" {
     docker_version       = "${var.docker_version}"
     rancher_register_url = "${var.rancher_register_url}"
     rancher_version      = "${var.rancher_version}"
+    region             = "${var.region}"
   }
 }
 
@@ -22,8 +23,14 @@ resource "aws_security_group" "servers" {
   description = "servers security group"
   ingress {
     from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags {

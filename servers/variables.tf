@@ -42,5 +42,4 @@ variable "volume_size" {
 }
 variable "desired_capacity" {
   type    = "string"
-  default = "3"
 }

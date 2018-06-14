@@ -6,10 +6,19 @@ provider "aws" {
 data "template_file" "cloudconfig" {
   template = "${file("cloudconfig.template")}"
   vars {
+    aws_access_key     = "${var.aws_access_key}"
+    aws_secret_key     = "${var.aws_secret_key}"
     cloudflare_api_key = "${var.cloudflare_api_key}"
     cloudflare_email   = "${var.cloudflare_email}"
     cloudflare_website = "${var.cloudflare_website}"
     docker_version     = "${var.docker_version}"
+    letsencrypt_email  = "${var.letsencrypt_email}"
+    mysql_database     = "${var.mysql_database}"
+    mysql_hostname     = "${var.mysql_hostname}"
+    mysql_password     = "${var.mysql_password}"
+    mysql_user         = "${var.mysql_user}"
+    rancher_hostname   = "${var.rancher_hostname}"
+    region             = "${var.region}"
   }
 }
 
@@ -18,8 +27,14 @@ resource "aws_security_group" "orch" {
   description = "orch security group"
   ingress {
     from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags {

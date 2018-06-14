@@ -1,19 +1,55 @@
-#cloudconfig
+#cloud-config
 write_files:
   - path: /etc/rc.local
     permissions: "0755"
     owner: root
     content: |
       #!/bin/bash
+      exec > /tmp/part-001.log 2>&1
+      touch /starting
+      export INSTANCE_ID=$(wget -qO- http://169.254.169.254/latest/meta-data/instance-id)
+      echo $INSTANCE_ID > instance_id
       wait-for-docker
+      echo 'docker run --rm radial/busyboxplus:curl curl $@' > /usr/bin/curl && chmod +x /usr/bin/curl
+      export ASSOCIATION_ID=$(docker run --rm \
+        -e AWS_ACCESS_KEY_ID="${aws_access_key}" \
+        -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
+        -e AWS_DEFAULT_REGION="${region}" \
+        mesosphere/aws-cli ec2 allocate-address | \
+        grep "AllocationId" | sed 's/\s//g' | sed 's/AllocationId://g')
+      echo $ASSOCIATION_ID > association_id
+      docker run --rm \
+        -e AWS_ACCESS_KEY_ID="${aws_access_key}" \
+        -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
+        -e AWS_DEFAULT_REGION="${region}" \
+        mesosphere/aws-cli ec2 associate-address --allocation-id $ASSOCIATION_ID --instance-id $INSTANCE_ID
       docker run --rm \
         -e CLOUDFLARE_API_KEY=${cloudflare_api_key} \
         -e CLOUDFLARE_EMAIL=${cloudflare_email} \
         -e CLOUDFLARE_WEBSITE=${cloudflare_website} \
         -e SUBDOMAIN=orch \
-        jamrizzi/dns-register:latest register
-      curl -L https://raw.githubusercontent.com/codejamninja/rancher-install/master/rancher-install.sh | \
-        sudo bash
+        codejamninja/dns-register:latest register
+      wget https://raw.githubusercontent.com/codejamninja/rancher-install/master/rancher-install.sh
+      (echo ${letsencrypt_email}; \
+        echo ${rancher_hostname}; \
+        echo ${mysql_hostname}; \
+        echo ${mysql_user}; \
+        echo ${mysql_password}; \
+        echo ${mysql_database}) | \
+        bash rancher-install.sh
+      rm rancher-install.sh
+  - path: /etc/rc0.d/S01ec2-termination
+    permissions: "0755"
+    owner: root
+    content: |
+      #!/bin/bash
+      touch /terminating
+      docker run --rm \
+        -e CLOUDFLARE_API_KEY=${cloudflare_api_key} \
+        -e CLOUDFLARE_EMAIL=${cloudflare_email} \
+        -e CLOUDFLARE_WEBSITE=${cloudflare_website} \
+        -e SUBDOMAIN=orch \
+        codejamninja/dns-register:latest unregister
 rancher:
   docker:
     engine: ${docker_version}
