@@ -5,10 +5,9 @@ write_files:
     owner: root
     content: |
       #!/bin/bash
-      exec > /tmp/part-001.log 2>&1
-      touch /starting
+      mkdir -p /var/log/boot
+      exec > /var/log/boot/cloud-config.log 2>&1
       export INSTANCE_ID=$(wget -qO- http://169.254.169.254/latest/meta-data/instance-id)
-      echo $INSTANCE_ID > instance_id
       wait-for-docker
       echo 'docker run --rm radial/busyboxplus:curl curl $@' > /usr/bin/curl && chmod +x /usr/bin/curl
       export ASSOCIATION_ID=$(docker run --rm \
@@ -16,8 +15,7 @@ write_files:
         -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
         -e AWS_DEFAULT_REGION="${region}" \
         mesosphere/aws-cli ec2 allocate-address | \
-        grep "AllocationId" | sed 's/\s//g' | sed 's/\"//g' | sed 's/AllocationId://g')
-      echo $ASSOCIATION_ID > association_id
+        grep "AllocationId" | sed 's/\s//g' | sed 's/"//g' | sed 's/AllocationId://g')
       docker run --rm \
         -e AWS_ACCESS_KEY_ID="${aws_access_key}" \
         -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
