@@ -17,10 +17,17 @@ Please ★ this repo if you found it useful ★ ★ ★
 
 ## Dependencies
 
+* [AWS CLI](https://aws.amazon.com/cli)
 * [Terraform](https://terraform.io)
 
 
 ## Usage
+
+### Configure AWS CLI
+
+```sh
+aws configure
+```
 
 ### Setup Orchestration Platform
 
