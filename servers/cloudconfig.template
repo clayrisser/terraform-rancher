@@ -10,6 +10,17 @@ write_files:
       export INSTANCE_ID=$(wget -qO- http://169.254.169.254/latest/meta-data/instance-id)
       wait-for-docker
       echo 'docker run --rm radial/busyboxplus:curl curl $@' > /usr/bin/curl && chmod +x /usr/bin/curl
+      export ASSOCIATION_ID=$(docker run --rm \
+        -e AWS_ACCESS_KEY_ID="${aws_access_key}" \
+        -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
+        -e AWS_DEFAULT_REGION="${region}" \
+        mesosphere/aws-cli ec2 allocate-address | \
+        grep "AllocationId" | sed 's/\s//g' | sed 's/"//g' | sed 's/AllocationId://g')
+      docker run --rm \
+        -e AWS_ACCESS_KEY_ID="${aws_access_key}" \
+        -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
+        -e AWS_DEFAULT_REGION="${region}" \
+        mesosphere/aws-cli ec2 associate-address --allocation-id $ASSOCIATION_ID --instance-id $INSTANCE_ID
       export SPOT=$(docker run --rm \
         -e AWS_ACCESS_KEY_ID="${aws_access_key}" \
         -e AWS_SECRET_ACCESS_KEY="${aws_secret_key}" \
@@ -17,17 +28,17 @@ write_files:
         mesosphere/aws-cli ec2 describe-instances --instance-ids $INSTANCE_ID | \
         grep -o '"InstanceLifecycle": "spot"')
       export LIFECYCLE=$([[ -z "$SPOT" ]] && echo "dedicated" || echo "spot")
-      docker run --rm \
-        -e CLOUDFLARE_API_KEY=${cloudflare_api_key} \
-        -e CLOUDFLARE_EMAIL=${cloudflare_email} \
-        -e CLOUDFLARE_WEBSITE=${cloudflare_website} \
-        -e SUBDOMAIN=servers \
-        jamrizzi/dns-register:latest register
+      # docker run --rm \
+      #  -e CLOUDFLARE_API_KEY=${cloudflare_api_key} \
+      #  -e CLOUDFLARE_EMAIL=${cloudflare_email} \
+      #  -e CLOUDFLARE_WEBSITE=${cloudflare_website} \
+      #  -e SUBDOMAIN=servers \
+      #  jamrizzi/dns-register:latest register
       docker run -d \
         --privileged \
         -e CATTLE_HOST_LABELS="id=$INSTANCE_ID&lifecycle=$LIFECYCLE" \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        rancher/agent:v${rancher_version} ${rancher_register_url}
+        rancher/agent:v${rancher_agent_version} ${rancher_register_url}
 rancher:
   docker:
     engine: ${docker_version}

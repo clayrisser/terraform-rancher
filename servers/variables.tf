@@ -20,9 +20,9 @@ variable "region" {
   type    = "string"
   default = "us-west-2"
 }
-variable "rancher_version" {
+variable "rancher_agent_version" {
   type    = "string"
-  default = "1.6.18"
+  default = "1.2.10"
 }
 variable "docker_version" {
   type    = "string"
