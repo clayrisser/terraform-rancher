@@ -32,17 +32,13 @@ aws configure
 ### Setup Orchestration Platform
 
 ```sh
-cd orch
-terraform init
-terraform apply
+make orch
 ```
 
 ### Setup Servers
 
 ```sh
-cd servers
-terraform init
-terraform apply
+make servers
 ```
 
 
